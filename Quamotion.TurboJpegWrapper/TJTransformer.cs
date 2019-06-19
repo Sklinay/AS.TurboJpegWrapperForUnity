@@ -5,7 +5,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace TurboJpegWrapper
@@ -87,8 +86,8 @@ namespace TurboJpegWrapper
                 TJUtils.GetErrorAndThrow();
             }
 
-            Size mcuSize;
-            if (!TurboJpegImport.MCUSizes.TryGetValue((TJSubsamplingOption)subsampl, out mcuSize))
+            TjSize tjSize;
+            if (!TurboJpegImport.MCUSizes.TryGetValue((TJSubsamplingOption)subsampl, out tjSize))
             {
                 throw new TJException("Unable to read Subsampling Options from jpeg header");
             }
@@ -96,8 +95,8 @@ namespace TurboJpegWrapper
             var tjTransforms = new TjTransform[count];
             for (var i = 0; i < count; i++)
             {
-                var x = CorrectRegionCoordinate(transforms[i].Region.X, mcuSize.Width);
-                var y = CorrectRegionCoordinate(transforms[i].Region.Y, mcuSize.Height);
+                var x = CorrectRegionCoordinate(transforms[i].Region.X, tjSize.Width);
+                var y = CorrectRegionCoordinate(transforms[i].Region.Y, tjSize.Height);
                 var w = CorrectRegionSize(transforms[i].Region.X, x, transforms[i].Region.W, width);
                 var h = CorrectRegionSize(transforms[i].Region.Y, y, transforms[i].Region.H, height);
 

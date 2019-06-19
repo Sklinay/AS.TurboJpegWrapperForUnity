@@ -6,7 +6,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -48,24 +47,17 @@ namespace TurboJpegWrapper
         /// <item><description>32x8 for 4:1:1</description></item>
         /// </list>
         /// </summary>
-        public static readonly Dictionary<TJSubsamplingOption, Size> MCUSizes = new Dictionary<TJSubsamplingOption, Size>
+        public static readonly Dictionary<TJSubsamplingOption, TjSize> MCUSizes = new Dictionary<TJSubsamplingOption, TjSize>
         {
-            { TJSubsamplingOption.Gray, new Size(8, 8) },
-            { TJSubsamplingOption.Chrominance444, new Size(8, 8) },
-            { TJSubsamplingOption.Chrominance422, new Size(16, 8) },
-            { TJSubsamplingOption.Chrominance420, new Size(16, 16) },
-            { TJSubsamplingOption.Chrominance440, new Size(8, 16) },
-            { TJSubsamplingOption.Chrominance411, new Size(32, 8) },
+            { TJSubsamplingOption.Gray, new TjSize(8, 8) },
+            { TJSubsamplingOption.Chrominance444, new TjSize(8, 8) },
+            { TJSubsamplingOption.Chrominance422, new TjSize(16, 8) },
+            { TJSubsamplingOption.Chrominance420, new TjSize(16, 16) },
+            { TJSubsamplingOption.Chrominance440, new TjSize(8, 16) },
+            { TJSubsamplingOption.Chrominance411, new TjSize(32, 8) },
         };
 
         private const string UnmanagedLibrary = "turbojpeg";
-
-#if NET45
-        static TurboJpegImport()
-        {
-            Load();
-        }
-#endif
 
         /// <summary>
         /// Gets a value indicating whether the turbojpeg native library could be found.
@@ -75,86 +67,8 @@ namespace TurboJpegWrapper
             get;
             private set;
         }
-#if !NET45
+
         = true;
-#endif
-
-#if NET45
-        /// <summary>
-        /// Attempts to load the native library.
-        /// </summary>
-        public static void Load()
-        {
-            Load(AppDomain.CurrentDomain.SetupInformation.ApplicationBase);
-        }
-
-        /// <summary>
-        /// Attempst to load the native library.
-        /// </summary>
-        /// <param name="directory">
-        /// The path to the directory in which the native library is located.
-        /// </param>
-        public static void Load(string directory)
-        {
-            if (directory == null)
-            {
-                throw new ArgumentNullException(nameof(directory));
-            }
-
-            if (!Directory.Exists(directory))
-            {
-                throw new ArgumentOutOfRangeException(nameof(directory), $"The directory '{directory}' does not exist.");
-            }
-
-            // When the library is first called, call LoadLibrary with the full path to the
-            // path of the various libaries, to make sure they are loaded from the exact
-            // path we specify.
-
-            // Any load errors would also be caught by us here, making it easier to troubleshoot.
-            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-            {
-                string nativeLibrariesDirectory;
-
-                if (Environment.Is64BitProcess)
-                {
-                    nativeLibrariesDirectory = Path.Combine(directory, "win7-x64");
-                }
-                else
-                {
-                    nativeLibrariesDirectory = Path.Combine(directory, "win7-x86");
-                }
-
-                if (!Directory.Exists(nativeLibrariesDirectory))
-                {
-                    throw new ArgumentOutOfRangeException(nameof(directory), $"The directory '{directory}' does not contain a subdirectory for the current architecture. The directory '{nativeLibrariesDirectory}' does not exist.");
-                }
-
-                string path = Path.Combine(nativeLibrariesDirectory, $"{UnmanagedLibrary}.dll");
-
-                if (!File.Exists(path))
-                {
-                    throw new FileNotFoundException($"Could not load libturbojpeg from {path}", path);
-                }
-
-                // Attempt to load the libraries. If they are not found, throw an error.
-                // See also http://blogs.msdn.com/b/adam_nathan/archive/2003/04/25/56643.aspx for
-                // more information about GetLastWin32Error
-                IntPtr result = NativeMethods.LoadLibrary(path);
-                if (result == IntPtr.Zero)
-                {
-                    var lastError = Marshal.GetLastWin32Error();
-                    var error = new Win32Exception(lastError);
-                    throw error;
-                }
-
-                LibraryFound = true;
-            }
-            else
-            {
-                throw new NotSupportedException("Quamotion.TurboJpegWrapper is supported on Windows (.NET FX, .NET Core), Linux (.NET Core) and OS X (.NET Core)");
-            }
-        }
-#endif
 
         /// <summary>
         /// This is port of TJPAD macros from turbojpeg.h

@@ -4,7 +4,6 @@
 // </copyright>
 
 using System;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -12,34 +11,13 @@ namespace TurboJpegWrapper
 {
     internal static class TJUtils
     {
-        ///<summary>
+        /// <summary>
         /// Retrieves last error from underlying turbo-jpeg library and throws exception.</summary>
         /// <exception cref="TJException"> Throws if low level turbo jpeg function fails. </exception>
         public static void GetErrorAndThrow()
         {
             var error = TurboJpegImport.TjGetErrorStr();
             throw new TJException(error);
-        }
-
-        /// <summary>
-        /// Converts pixel format from <see cref="PixelFormat"/> to <see cref="TJPixelFormat"/>.
-        /// </summary>
-        /// <param name="pixelFormat">Pixel format to convert.</param>
-        /// <returns>Converted value of pixel format or exception if convertion is impossible.</returns>
-        /// <exception cref="NotSupportedException">Convertion can not be performed.</exception>
-        public static TJPixelFormat ConvertPixelFormat(PixelFormat pixelFormat)
-        {
-            switch (pixelFormat)
-            {
-                case PixelFormat.Format32bppArgb:
-                    return TJPixelFormat.BGRA;
-                case PixelFormat.Format24bppRgb:
-                    return TJPixelFormat.BGR;
-                case PixelFormat.Format8bppIndexed:
-                    return TJPixelFormat.Gray;
-                default:
-                    throw new NotSupportedException($"Provided pixel format \"{pixelFormat}\" is not supported");
-            }
         }
 
         /// <summary>

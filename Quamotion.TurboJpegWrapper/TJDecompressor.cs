@@ -4,8 +4,6 @@
 // </copyright>
 
 using System;
-using System.Drawing;
-using System.Drawing.Imaging;
 
 namespace TurboJpegWrapper
 {
@@ -160,37 +158,25 @@ namespace TurboJpegWrapper
         /// <summary>
         /// Decompress a JPEG image to an RGB, grayscale, or CMYK image.
         /// </summary>
-        /// <param name="jpegBuf">Pointer to a buffer containing the JPEG image to decompress. This buffer is not modified.</param>
-        /// <param name="jpegBufSize">Size of the JPEG image (in bytes).</param>
+        /// <param name="jpegBuf">A buffer containing the JPEG image to decompress. This buffer is not modified.</param>
+        /// <param name="jpegBufSize">Size of jpegBuf.</param>
         /// <param name="destPixelFormat">Pixel format of the destination image (see <see cref="PixelFormat"/> "Pixel formats".)</param>
         /// <param name="flags">The bitwise OR of one or more of the <see cref="TJFlags"/> "flags".</param>
-        /// <returns>Decompressed image of specified format.</returns>
+        /// <returns>Decompressed Image.</returns>
         /// <exception cref="TJException">Throws if underlying decompress function failed.</exception>
         /// <exception cref="ObjectDisposedException">Object is disposed and can not be used anymore.</exception>
-        /// <exception cref="NotSupportedException">Convertion to the requested pixel format can not be performed.</exception>
-        public unsafe Bitmap Decompress(IntPtr jpegBuf, ulong jpegBufSize, PixelFormat destPixelFormat, TJFlags flags)
+        public DecompressedImage Decompress(IntPtr jpegBuf, ulong jpegBufSize, TJPixelFormat destPixelFormat, TJFlags flags)
         {
             if (this.isDisposed)
             {
                 throw new ObjectDisposedException("this");
             }
 
-            var targetFormat = TJUtils.ConvertPixelFormat(destPixelFormat);
             int width;
             int height;
             int stride;
-            var buffer = this.Decompress(jpegBuf, jpegBufSize, targetFormat, flags, out width, out height, out stride);
-            Bitmap result;
-            fixed (byte* bufferPtr = buffer)
-            {
-                result = new Bitmap(width, height, stride, destPixelFormat, (IntPtr)bufferPtr);
-                if (destPixelFormat == PixelFormat.Format8bppIndexed)
-                {
-                    result.Palette = this.FixPaletteToGrayscale(result.Palette);
-                }
-            }
-
-            return result;
+            byte[] data = this.Decompress(jpegBuf, jpegBufSize, destPixelFormat, flags, out width, out height, out stride);
+            return new DecompressedImage(width, height, stride, data, destPixelFormat);
         }
 
         /// <summary>
@@ -199,21 +185,20 @@ namespace TurboJpegWrapper
         /// <param name="jpegBuf">A buffer containing the JPEG image to decompress. This buffer is not modified.</param>
         /// <param name="destPixelFormat">Pixel format of the destination image (see <see cref="PixelFormat"/> "Pixel formats".)</param>
         /// <param name="flags">The bitwise OR of one or more of the <see cref="TJFlags"/> "flags".</param>
-        /// <returns>Decompressed image of specified format.</returns>
+        /// <returns>Decompressed Image.</returns>
         /// <exception cref="TJException">Throws if underlying decompress function failed.</exception>
         /// <exception cref="ObjectDisposedException">Object is disposed and can not be used anymore.</exception>
-        /// <exception cref="NotSupportedException">Convertion to the requested pixel format can not be performed.</exception>
-        public unsafe Bitmap Decompress(byte[] jpegBuf, PixelFormat destPixelFormat, TJFlags flags)
+        public unsafe DecompressedImage Decompress(byte[] jpegBuf, TJPixelFormat destPixelFormat, TJFlags flags)
         {
             if (this.isDisposed)
             {
                 throw new ObjectDisposedException("this");
             }
 
-            var jpegBufSize = (ulong)jpegBuf.Length;
-            fixed (byte* jpegPtr = jpegBuf)
+            ulong length = (ulong)jpegBuf.Length;
+            fixed (byte* numPtr = jpegBuf)
             {
-                return this.Decompress((IntPtr)jpegPtr, jpegBufSize, destPixelFormat, flags);
+                return this.Decompress((IntPtr)((void*)numPtr), length, destPixelFormat, flags);
             }
         }
 
@@ -303,16 +288,10 @@ namespace TurboJpegWrapper
             }
         }
 
-        private ColorPalette FixPaletteToGrayscale(ColorPalette palette)
-        {
-            for (var index = 0; index < palette.Entries.Length; ++index)
-            {
-                palette.Entries[index] = Color.FromArgb(index, index, index);
-            }
-
-            return palette;
-        }
-
+        /// <summary>
+        /// Releases resources.
+        /// </summary>
+        /// <param name="callFromUserCode">callFromUserCode.</param>
         protected virtual void Dispose(bool callFromUserCode)
         {
             if (callFromUserCode)
